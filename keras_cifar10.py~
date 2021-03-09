@@ -4,7 +4,7 @@ from sklearn.metrics import classification_report
 from keras.models import Sequential
 from keras.layers.core import Dense
 from keras.optimizers import SGD
-from skearn import datasets
+from keras.datasets import cifar10
 import matplotlib.pyplot as plt
 import numpy as np
 import argparse
@@ -13,30 +13,37 @@ ap=argparse.ArgumentParser()
 ap.add_argument('-o','--output',required=True,help='path to the output loss/accuracy plot')
 args=vars(ap.parse_args())
 
-print('[INFO] loading MNIST (full) dataset...')
-dataset=datasets.fetch_mldata('MNIST Original')
+print('[INFO] loading CIFAR-10 dataset...')
+((trainX,trainY),(testX,testY))=cifar10.load_data()
+print(trainX)
+trainX=trainX.astype('float')/255.0
+print(trainX)
+testX=testX.astype('float')/255.0
+trainX=trainX.reshape((trainX.shape[0],3072))
+print(trainX)
+testX=testX.reshape((testX.shape[0],3072))
 
-data=dataset.data.astype('float')/255.0
-(trainX,testX,trainY,testY)=train_test_split(data,dataset.target,test_size=0.25)
 lb=LabelBinarizer()
 trainY=lb.fit_transform(trainY)
 testY=lb.transform(testY)
 
+labelNames=['airplane','automobil','bird','cat','deer','dog','frog','horse','ship','truck']
+
 model=Sequential()
-model.add(Dense(256,input_shape=(784,),activation='sigmoid'))
-model.add(Dense(128,activation='sigmoid'))
+model.add(Dense(1024,input_shape=(3072,),activation='relu'))
+model.add(Dense(512,activation='relu'))
 model.add(Dense(10,activation='softmax'))
 
 print('[INFO] training network...')
 sgd=SGD(0.01)
 model.compile(loss='categorical_crossentropy',optmizer=sgd,metrics=['accuracy'])
-H=model.fit(trainX,trainY,validation_data=(testX,testY),epochs=100,bach_size=128)
+H=model.fit(trainX,trainY,validation_data=(testX,testY),epochs=100,bach_size=32)
 
 print('[INFO] evaluating network...')
-prediction=model.predict(testX,batch_size=128)
+prediction=model.predict(testX,batch_size=32)
 print(classification_report(testY.argmax(axis=1),predictions.argmax(axis=1),target_names=[str(x) for x in lb.classer_]))
 
-plt.style.use('ggplot')
+#plt.style.use('ggplot')
 plt.figure()
 plt.plot(np.arange(0,100),H.history['loss'],label='train_loss')
 plt.plot(np.arange(0,100),H.history['val_loss'],label='val_loss')
